@@ -11,6 +11,7 @@
 //! ```
 
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // ── Bit-layout constants ──────────────────────────────────────────────────────
 
@@ -81,14 +82,12 @@ impl Snowflake {
     /// - `epoch_ms` is milliseconds since UNIX_EPOCH for your custom epoch;
     ///   pass [`DEFAULT_EPOCH_MS`] to use the built-in 2020-01-01 default.
     pub fn new(machine_id: u64, epoch_ms: u64) -> Result<Self, SnowflakeError> {
-        // TODO:
-        //  1. if machine_id > MAX_MACHINE_ID {
-        //         return Err(SnowflakeError::InvalidMachineId(machine_id));
-        //     }
-        //  2. Return Ok(Snowflake {
-        //         inner: Mutex::new(State { epoch_ms, machine_id, sequence: 0, last_ms: 0 }),
-        //     })
-        todo!("implement Snowflake::new")
+        if machine_id > MAX_MACHINE_ID {
+            return Err(SnowflakeError::InvalidMachineId(machine_id));
+        }
+        Ok(Snowflake {
+            inner: Mutex::new(State { epoch_ms, machine_id, sequence: 0, last_ms: 0 }),
+        })
     }
 
     /// Returns milliseconds elapsed since the configured epoch.
@@ -102,22 +101,21 @@ impl Snowflake {
     /// Ok(dur.as_millis() as u64 - epoch_ms)
     /// ```
     fn current_ms(epoch_ms: u64) -> Result<u64, SnowflakeError> {
-        // TODO: implement using SystemTime::now().duration_since(UNIX_EPOCH)
-        // (add `use std::time::{SystemTime, UNIX_EPOCH};` at the top of this file)
-        let _ = epoch_ms;
-        todo!("implement Snowflake::current_ms")
+        let dur = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| SnowflakeError::SystemTime(e.to_string()))?;
+        Ok(dur.as_millis() as u64 - epoch_ms)
     }
 
     /// Spins until `current_ms()` returns a value strictly greater than `last`.
     /// Call this when the sequence counter overflows `MAX_SEQUENCE`.
     fn wait_next_ms(epoch_ms: u64, last: u64) -> Result<u64, SnowflakeError> {
-        // TODO:
-        //  loop {
-        //      let ms = Self::current_ms(epoch_ms)?;
-        //      if ms > last { return Ok(ms); }
-        //  }
-        let _ = (epoch_ms, last);
-        todo!("implement Snowflake::wait_next_ms")
+        loop {
+            let ms = Self::current_ms(epoch_ms)?;
+            if ms > last {
+                return Ok(ms);
+            }
+        }
     }
 
     /// Generates the next unique 64-bit Snowflake ID.
@@ -131,47 +129,32 @@ impl Snowflake {
 
         let mut now = Self::current_ms(inner.epoch_ms)?;
 
-        // TODO step 1 — clock drift guard:
-        //   if now < inner.last_ms { ... }
-        //
-        //   Option A – spin (self-healing):
-        //       while now < inner.last_ms {
-        //           now = Self::current_ms(inner.epoch_ms)?;
-        //       }
-        //
-        //   Option B – error (strict):
-        //       if now < inner.last_ms {
-        //           return Err(SnowflakeError::ClockDrift {
-        //               last_ms: inner.last_ms,
-        //               now_ms: now,
-        //           });
-        //       }
-        //
-        //   Choose one and add a comment explaining your choice.
+        // Option B – return an error on clock drift; makes the problem immediately
+        // visible rather than spinning indefinitely under severe NTP corrections.
+        if now < inner.last_ms {
+            return Err(SnowflakeError::ClockDrift {
+                last_ms: inner.last_ms,
+                now_ms: now,
+            });
+        }
 
-        // TODO step 2 — same millisecond:
-        //   if now == inner.last_ms {
-        //       inner.sequence = (inner.sequence + 1) & MAX_SEQUENCE;
-        //       if inner.sequence == 0 {
-        //           // sequence wrapped — wait for the clock to advance
-        //           now = Self::wait_next_ms(inner.epoch_ms, inner.last_ms)?;
-        //       }
-        //   }
+        if now == inner.last_ms {
+            inner.sequence = (inner.sequence + 1) & MAX_SEQUENCE;
+            if inner.sequence == 0 {
+                // sequence wrapped — wait for the clock to advance
+                now = Self::wait_next_ms(inner.epoch_ms, inner.last_ms)?;
+            }
+        }
 
-        // TODO step 3 — new millisecond:
-        //   if now > inner.last_ms {
-        //       inner.sequence = 0;
-        //       inner.last_ms = now;
-        //   }
+        if now > inner.last_ms {
+            inner.sequence = 0;
+            inner.last_ms = now;
+        }
 
-        // TODO step 4 — compose the 64-bit ID:
-        //   let id = (now << TIMESTAMP_SHIFT)
-        //       | (inner.machine_id << MACHINE_ID_SHIFT)
-        //       | inner.sequence;
-        //   Ok(id)
-
-        let _ = now; // remove once you use `now` in the steps above
-        todo!("implement Snowflake::next_id — fill in the four TODO steps")
+        let id = (now << TIMESTAMP_SHIFT)
+            | (inner.machine_id << MACHINE_ID_SHIFT)
+            | inner.sequence;
+        Ok(id)
     }
 }
 
@@ -179,11 +162,8 @@ impl Snowflake {
 
 /// Decomposes a Snowflake ID into `(timestamp_ms_since_epoch, machine_id, sequence)`.
 pub fn decompose_id(id: u64) -> (u64, u64, u64) {
-    // TODO:
-    //   let sequence   = id & MAX_SEQUENCE;
-    //   let machine_id = (id >> MACHINE_ID_SHIFT) & MAX_MACHINE_ID;
-    //   let ts_ms      = id >> TIMESTAMP_SHIFT;
-    //   (ts_ms, machine_id, sequence)
-    let _ = id;
-    todo!("implement decompose_id")
+    let sequence   = id & MAX_SEQUENCE;
+    let machine_id = (id >> MACHINE_ID_SHIFT) & MAX_MACHINE_ID;
+    let ts_ms      = id >> TIMESTAMP_SHIFT;
+    (ts_ms, machine_id, sequence)
 }

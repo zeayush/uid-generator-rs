@@ -35,21 +35,14 @@ impl std::error::Error for MachineIdError {}
 
 /// Returns the machine ID from the `UID_MACHINE_ID` environment variable.
 pub fn machine_id_from_env() -> Result<u64, MachineIdError> {
-    // TODO:
-    //  1. Read the env var:
-    //       use std::env;
-    //       let val = env::var(MACHINE_ID_ENV_VAR)
-    //           .map_err(|_| MachineIdError::EnvNotSet)?;
-    //
-    //  2. Parse as u64:
-    //       let n: u64 = val.parse()
-    //           .map_err(|_| MachineIdError::InvalidValue(val.clone()))?;
-    //
-    //  3. Validate range:
-    //       if n > MAX_MACHINE_ID { return Err(MachineIdError::InvalidValue(val)); }
-    //
-    //  4. Return Ok(n)
-    todo!("implement machine_id_from_env")
+    let val = std::env::var(MACHINE_ID_ENV_VAR)
+        .map_err(|_| MachineIdError::EnvNotSet)?;
+    let n: u64 = val.parse()
+        .map_err(|_| MachineIdError::InvalidValue(val.clone()))?;
+    if n > MAX_MACHINE_ID {
+        return Err(MachineIdError::InvalidValue(val));
+    }
+    Ok(n)
 }
 
 /// Hashes the hostname with FNV-1a 32-bit and maps it to `[0, MAX_MACHINE_ID]`.
@@ -58,15 +51,11 @@ pub fn machine_id_from_env() -> Result<u64, MachineIdError> {
 /// - `HOSTNAME` environment variable (common on Unix/Linux)
 /// - `COMPUTERNAME` environment variable (Windows)
 pub fn machine_id_from_hostname() -> Result<u64, MachineIdError> {
-    // TODO:
-    //  1. let hostname = std::env::var("HOSTNAME")
-    //         .or_else(|_| std::env::var("COMPUTERNAME"))
-    //         .map_err(|_| MachineIdError::SystemError("hostname not available".into()))?;
-    //
-    //  2. let hash = fnv1a_32(hostname.as_bytes());
-    //
-    //  3. Return Ok(hash as u64 & MAX_MACHINE_ID)
-    todo!("implement machine_id_from_hostname")
+    let hostname = std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .map_err(|_| MachineIdError::SystemError("hostname not available".into()))?;
+    let hash = fnv1a_32(hostname.as_bytes());
+    Ok(hash as u64 & MAX_MACHINE_ID)
 }
 
 /// Discovers this machine's primary outbound IPv4 and hashes it with FNV-1a 32-bit.
@@ -74,26 +63,19 @@ pub fn machine_id_from_hostname() -> Result<u64, MachineIdError> {
 /// Uses the "UDP trick": connecting a UDP socket to a public address causes the
 /// OS to select the best outbound interface — without sending any packets.
 pub fn machine_id_from_ip() -> Result<u64, MachineIdError> {
-    // TODO (you will need `use std::net::UdpSocket;`):
-    //
-    //  1. let socket = UdpSocket::bind("0.0.0.0:0")
-    //         .map_err(|e| MachineIdError::SystemError(e.to_string()))?;
-    //
-    //  2. socket.connect("8.8.8.8:80")   // no packets sent
-    //         .map_err(|e| MachineIdError::SystemError(e.to_string()))?;
-    //
-    //  3. let local = socket.local_addr()
-    //         .map_err(|e| MachineIdError::SystemError(e.to_string()))?;
-    //
-    //  4. let ip = match local.ip() {
-    //         std::net::IpAddr::V4(v4) => v4,
-    //         _ => return Err(MachineIdError::NoAddress),
-    //     };
-    //
-    //  5. let hash = fnv1a_32(&ip.octets());
-    //
-    //  6. Return Ok(hash as u64 & MAX_MACHINE_ID)
-    todo!("implement machine_id_from_ip")
+    use std::net::UdpSocket;
+    let socket = UdpSocket::bind("0.0.0.0:0")
+        .map_err(|e| MachineIdError::SystemError(e.to_string()))?;
+    socket.connect("8.8.8.8:80")
+        .map_err(|e| MachineIdError::SystemError(e.to_string()))?;
+    let local = socket.local_addr()
+        .map_err(|e| MachineIdError::SystemError(e.to_string()))?;
+    let ip = match local.ip() {
+        std::net::IpAddr::V4(v4) => v4,
+        _ => return Err(MachineIdError::NoAddress),
+    };
+    let hash = fnv1a_32(&ip.octets());
+    Ok(hash as u64 & MAX_MACHINE_ID)
 }
 
 /// Returns a machine ID by trying sources in priority order:
@@ -104,12 +86,9 @@ pub fn machine_id_from_ip() -> Result<u64, MachineIdError> {
 ///
 /// Returns the first `Ok` result, or the last `Err` if all fail.
 pub fn resolve_machine_id() -> Result<u64, MachineIdError> {
-    // TODO: try each source in order; return the first Ok, or last Err.
-    // Hint:
-    //   if let Ok(id) = machine_id_from_env()      { return Ok(id); }
-    //   if let Ok(id) = machine_id_from_ip()        { return Ok(id); }
-    //   machine_id_from_hostname()
-    todo!("implement resolve_machine_id")
+    if let Ok(id) = machine_id_from_env()      { return Ok(id); }
+    if let Ok(id) = machine_id_from_ip()        { return Ok(id); }
+    machine_id_from_hostname()
 }
 
 // ── FNV-1a 32-bit hash ────────────────────────────────────────────────────────
