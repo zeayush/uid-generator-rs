@@ -1,16 +1,13 @@
 [package]
 name = "uid-generator-rs"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-# getrandom provides access to the OS entropy source for ULID random bytes.
-# It has no transitive dependencies.
 getrandom = "0.2"
 
 [dev-dependencies]
-# criterion is the standard Rust microbenchmark harness.
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = "0.5"
 
 [[bench]]
 name = "benchmark"

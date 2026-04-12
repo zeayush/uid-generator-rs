@@ -5,8 +5,8 @@
 use std::env;
 use std::sync::Mutex;
 use uid_generator_rs::{
-    machine_id_from_env, machine_id_from_hostname, machine_id_from_ip, resolve_machine_id,
-    MachineIdError, MACHINE_ID_ENV_VAR, MAX_MACHINE_ID,
+    MACHINE_ID_ENV_VAR, MAX_MACHINE_ID, MachineIdError, machine_id_from_env,
+    machine_id_from_hostname, machine_id_from_ip, resolve_machine_id,
 };
 
 static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -79,7 +79,10 @@ fn env_not_a_number_returns_error() {
 #[test]
 fn hostname_result_in_valid_range() {
     let id = machine_id_from_hostname().unwrap();
-    assert!(id <= MAX_MACHINE_ID, "id {id} > MAX_MACHINE_ID {MAX_MACHINE_ID}");
+    assert!(
+        id <= MAX_MACHINE_ID,
+        "id {id} > MAX_MACHINE_ID {MAX_MACHINE_ID}"
+    );
 }
 
 #[test]
@@ -94,7 +97,10 @@ fn hostname_is_deterministic() {
 #[test]
 fn ip_result_in_valid_range() {
     match machine_id_from_ip() {
-        Ok(id) => assert!(id <= MAX_MACHINE_ID, "id {id} > MAX_MACHINE_ID {MAX_MACHINE_ID}"),
+        Ok(id) => assert!(
+            id <= MAX_MACHINE_ID,
+            "id {id} > MAX_MACHINE_ID {MAX_MACHINE_ID}"
+        ),
         Err(e) => eprintln!("machine_id_from_ip skipped (no suitable IP in CI): {e}"),
     }
 }

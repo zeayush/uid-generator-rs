@@ -1,18 +1,18 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use uid_generator_rs::{Snowflake, Ulid, DEFAULT_EPOCH_MS};
+use criterion::{Criterion, criterion_group, criterion_main};
+use uid_generator_rs::{DEFAULT_EPOCH_MS, Snowflake, Ulid};
 
-fn bench_snowflake(c: &mut Criterion) {
-    let sf = Snowflake::new(1, DEFAULT_EPOCH_MS).expect("Snowflake::new failed");
+fn bench_snowflake_single_thread(c: &mut Criterion) {
+    let sf = Snowflake::new(1, DEFAULT_EPOCH_MS).expect("failed to create snowflake");
     c.bench_function("snowflake/next_id", |b| {
-        b.iter(|| sf.next_id().unwrap());
+        b.iter(|| sf.next_id().expect("next_id failed"));
     });
 }
 
-fn bench_ulid(c: &mut Criterion) {
+fn bench_ulid_new(c: &mut Criterion) {
     c.bench_function("ulid/new", |b| {
-        b.iter(|| Ulid::new().unwrap());
+        b.iter(|| Ulid::new().expect("ulid generation failed"));
     });
 }
 
-criterion_group!(benches, bench_snowflake, bench_ulid);
+criterion_group!(benches, bench_snowflake_single_thread, bench_ulid_new);
 criterion_main!(benches);

@@ -59,6 +59,7 @@ impl std::error::Error for SnowflakeError {}
 
 // ── Internal state (kept behind the mutex) ────────────────────────────────────
 
+#[derive(Debug)]
 struct State {
     epoch_ms: u64,
     machine_id: u64,
@@ -71,6 +72,7 @@ struct State {
 /// Thread-safe Snowflake ID generator.
 ///
 /// Create once per process/service and share via `Arc<Snowflake>`.
+#[derive(Debug)]
 pub struct Snowflake {
     inner: Mutex<State>,
 }
@@ -86,7 +88,12 @@ impl Snowflake {
             return Err(SnowflakeError::InvalidMachineId(machine_id));
         }
         Ok(Snowflake {
-            inner: Mutex::new(State { epoch_ms, machine_id, sequence: 0, last_ms: 0 }),
+            inner: Mutex::new(State {
+                epoch_ms,
+                machine_id,
+                sequence: 0,
+                last_ms: 0,
+            }),
         })
     }
 
@@ -129,13 +136,10 @@ impl Snowflake {
 
         let mut now = Self::current_ms(inner.epoch_ms)?;
 
-        // Option B – return an error on clock drift; makes the problem immediately
-        // visible rather than spinning indefinitely under severe NTP corrections.
+        // Clock drift protection: if the wall clock moved backward, park until
+        // we observe a millisecond strictly greater than the last emitted one.
         if now < inner.last_ms {
-            return Err(SnowflakeError::ClockDrift {
-                last_ms: inner.last_ms,
-                now_ms: now,
-            });
+            now = Self::wait_next_ms(inner.epoch_ms, inner.last_ms)?;
         }
 
         if now == inner.last_ms {
@@ -151,9 +155,7 @@ impl Snowflake {
             inner.last_ms = now;
         }
 
-        let id = (now << TIMESTAMP_SHIFT)
-            | (inner.machine_id << MACHINE_ID_SHIFT)
-            | inner.sequence;
+        let id = (now << TIMESTAMP_SHIFT) | (inner.machine_id << MACHINE_ID_SHIFT) | inner.sequence;
         Ok(id)
     }
 }
@@ -162,8 +164,8 @@ impl Snowflake {
 
 /// Decomposes a Snowflake ID into `(timestamp_ms_since_epoch, machine_id, sequence)`.
 pub fn decompose_id(id: u64) -> (u64, u64, u64) {
-    let sequence   = id & MAX_SEQUENCE;
+    let sequence = id & MAX_SEQUENCE;
     let machine_id = (id >> MACHINE_ID_SHIFT) & MAX_MACHINE_ID;
-    let ts_ms      = id >> TIMESTAMP_SHIFT;
+    let ts_ms = id >> TIMESTAMP_SHIFT;
     (ts_ms, machine_id, sequence)
 }

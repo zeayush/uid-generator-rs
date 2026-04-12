@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use uid_generator_rs::{
-    decompose_id, Snowflake, SnowflakeError, DEFAULT_EPOCH_MS, MAX_MACHINE_ID, MAX_SEQUENCE,
+    DEFAULT_EPOCH_MS, MAX_MACHINE_ID, MAX_SEQUENCE, Snowflake, SnowflakeError, decompose_id,
 };
 
 #[test]
@@ -19,8 +19,7 @@ fn new_snowflake_accepts_zero_machine_id() {
 
 #[test]
 fn new_snowflake_accepts_max_machine_id() {
-    Snowflake::new(MAX_MACHINE_ID, DEFAULT_EPOCH_MS)
-        .expect("MAX_MACHINE_ID should be valid");
+    Snowflake::new(MAX_MACHINE_ID, DEFAULT_EPOCH_MS).expect("MAX_MACHINE_ID should be valid");
 }
 
 #[test]
@@ -54,7 +53,9 @@ fn next_id_concurrent_no_duplicates() {
     for _ in 0..10 {
         let sf = Arc::clone(&sf);
         handles.push(std::thread::spawn(move || {
-            (0..1_000).map(|_| sf.next_id().unwrap()).collect::<Vec<_>>()
+            (0..1_000)
+                .map(|_| sf.next_id().unwrap())
+                .collect::<Vec<_>>()
         }));
     }
 

@@ -9,8 +9,8 @@
 //!
 //! String representation: 26 [Crockford Base32](https://www.crockford.com/base32.html) characters.
 
-use std::str::FromStr;
 use getrandom::getrandom;
+use std::str::FromStr;
 
 // ── Alphabet ──────────────────────────────────────────────────────────────────
 
@@ -82,10 +82,9 @@ impl Ulid {
         bytes[1] = (ms >> 32) as u8;
         bytes[2] = (ms >> 24) as u8;
         bytes[3] = (ms >> 16) as u8;
-        bytes[4] = (ms >>  8) as u8;
-        bytes[5] =  ms        as u8;
-        getrandom(&mut bytes[6..])
-            .map_err(|e| UlidError::RandomnessError(e.to_string()))?;
+        bytes[4] = (ms >> 8) as u8;
+        bytes[5] = ms as u8;
+        getrandom(&mut bytes[6..]).map_err(|e| UlidError::RandomnessError(e.to_string()))?;
         Ok(Ulid(bytes))
     }
 
@@ -95,7 +94,7 @@ impl Ulid {
             | (self.0[1] as u64) << 32
             | (self.0[2] as u64) << 24
             | (self.0[3] as u64) << 16
-            | (self.0[4] as u64) <<  8
+            | (self.0[4] as u64) << 8
             | (self.0[5] as u64)
     }
 }
@@ -125,16 +124,16 @@ impl std::fmt::Display for Ulid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let b = &self.0;
         let mut dst = [0u8; 26];
-        dst[ 0] = CROCKFORD[((b[0] & 0xE0) >> 5) as usize];
-        dst[ 1] = CROCKFORD[(b[0] & 0x1F) as usize];
-        dst[ 2] = CROCKFORD[((b[1] & 0xF8) >> 3) as usize];
-        dst[ 3] = CROCKFORD[(((b[1] & 0x07) << 2) | ((b[2] & 0xC0) >> 6)) as usize];
-        dst[ 4] = CROCKFORD[((b[2] & 0x3E) >> 1) as usize];
-        dst[ 5] = CROCKFORD[(((b[2] & 0x01) << 4) | ((b[3] & 0xF0) >> 4)) as usize];
-        dst[ 6] = CROCKFORD[(((b[3] & 0x0F) << 1) | ((b[4] & 0x80) >> 7)) as usize];
-        dst[ 7] = CROCKFORD[((b[4] & 0x7C) >> 2) as usize];
-        dst[ 8] = CROCKFORD[(((b[4] & 0x03) << 3) | ((b[5] & 0xE0) >> 5)) as usize];
-        dst[ 9] = CROCKFORD[(b[5] & 0x1F) as usize];
+        dst[0] = CROCKFORD[((b[0] & 0xE0) >> 5) as usize];
+        dst[1] = CROCKFORD[(b[0] & 0x1F) as usize];
+        dst[2] = CROCKFORD[((b[1] & 0xF8) >> 3) as usize];
+        dst[3] = CROCKFORD[(((b[1] & 0x07) << 2) | ((b[2] & 0xC0) >> 6)) as usize];
+        dst[4] = CROCKFORD[((b[2] & 0x3E) >> 1) as usize];
+        dst[5] = CROCKFORD[(((b[2] & 0x01) << 4) | ((b[3] & 0xF0) >> 4)) as usize];
+        dst[6] = CROCKFORD[(((b[3] & 0x0F) << 1) | ((b[4] & 0x80) >> 7)) as usize];
+        dst[7] = CROCKFORD[((b[4] & 0x7C) >> 2) as usize];
+        dst[8] = CROCKFORD[(((b[4] & 0x03) << 3) | ((b[5] & 0xE0) >> 5)) as usize];
+        dst[9] = CROCKFORD[(b[5] & 0x1F) as usize];
         dst[10] = CROCKFORD[((b[6] & 0xF8) >> 3) as usize];
         dst[11] = CROCKFORD[(((b[6] & 0x07) << 2) | ((b[7] & 0xC0) >> 6)) as usize];
         dst[12] = CROCKFORD[((b[7] & 0x3E) >> 1) as usize];
@@ -172,16 +171,16 @@ impl FromStr for Ulid {
             v[i] = decode_base32_char(c)?;
         }
         let mut bytes = [0u8; 16];
-        bytes[ 0] = (v[ 0] << 5) | v[ 1];
-        bytes[ 1] = (v[ 2] << 3) | (v[ 3] >> 2);
-        bytes[ 2] = ((v[ 3] & 0x03) << 6) | (v[ 4] << 1) | (v[ 5] >> 4);
-        bytes[ 3] = ((v[ 5] & 0x0F) << 4) | (v[ 6] >> 1);
-        bytes[ 4] = ((v[ 6] & 0x01) << 7) | (v[ 7] << 2) | (v[ 8] >> 3);
-        bytes[ 5] = ((v[ 8] & 0x07) << 5) | v[ 9];
-        bytes[ 6] = (v[10] << 3) | (v[11] >> 2);
-        bytes[ 7] = ((v[11] & 0x03) << 6) | (v[12] << 1) | (v[13] >> 4);
-        bytes[ 8] = ((v[13] & 0x0F) << 4) | (v[14] >> 1);
-        bytes[ 9] = ((v[14] & 0x01) << 7) | (v[15] << 2) | (v[16] >> 3);
+        bytes[0] = (v[0] << 5) | v[1];
+        bytes[1] = (v[2] << 3) | (v[3] >> 2);
+        bytes[2] = ((v[3] & 0x03) << 6) | (v[4] << 1) | (v[5] >> 4);
+        bytes[3] = ((v[5] & 0x0F) << 4) | (v[6] >> 1);
+        bytes[4] = ((v[6] & 0x01) << 7) | (v[7] << 2) | (v[8] >> 3);
+        bytes[5] = ((v[8] & 0x07) << 5) | v[9];
+        bytes[6] = (v[10] << 3) | (v[11] >> 2);
+        bytes[7] = ((v[11] & 0x03) << 6) | (v[12] << 1) | (v[13] >> 4);
+        bytes[8] = ((v[13] & 0x0F) << 4) | (v[14] >> 1);
+        bytes[9] = ((v[14] & 0x01) << 7) | (v[15] << 2) | (v[16] >> 3);
         bytes[10] = ((v[16] & 0x07) << 5) | v[17];
         bytes[11] = (v[18] << 3) | (v[19] >> 2);
         bytes[12] = ((v[19] & 0x03) << 6) | (v[20] << 1) | (v[21] >> 4);
@@ -219,38 +218,38 @@ impl Ord for Ulid {
 /// | `U`, `u` | error | Not in alphabet |
 pub fn decode_base32_char(c: char) -> Result<u8, UlidError> {
     match c {
-        '0' | 'O' | 'o'              => Ok(0),
+        '0' | 'O' | 'o' => Ok(0),
         '1' | 'I' | 'i' | 'L' | 'l' => Ok(1),
-        '2'                          => Ok(2),
-        '3'                          => Ok(3),
-        '4'                          => Ok(4),
-        '5'                          => Ok(5),
-        '6'                          => Ok(6),
-        '7'                          => Ok(7),
-        '8'                          => Ok(8),
-        '9'                          => Ok(9),
-        'A' | 'a'                    => Ok(10),
-        'B' | 'b'                    => Ok(11),
-        'C' | 'c'                    => Ok(12),
-        'D' | 'd'                    => Ok(13),
-        'E' | 'e'                    => Ok(14),
-        'F' | 'f'                    => Ok(15),
-        'G' | 'g'                    => Ok(16),
-        'H' | 'h'                    => Ok(17),
-        'J' | 'j'                    => Ok(18),
-        'K' | 'k'                    => Ok(19),
-        'M' | 'm'                    => Ok(20),
-        'N' | 'n'                    => Ok(21),
-        'P' | 'p'                    => Ok(22),
-        'Q' | 'q'                    => Ok(23),
-        'R' | 'r'                    => Ok(24),
-        'S' | 's'                    => Ok(25),
-        'T' | 't'                    => Ok(26),
-        'V' | 'v'                    => Ok(27),
-        'W' | 'w'                    => Ok(28),
-        'X' | 'x'                    => Ok(29),
-        'Y' | 'y'                    => Ok(30),
-        'Z' | 'z'                    => Ok(31),
-        _                            => Err(UlidError::InvalidChar(c)),
+        '2' => Ok(2),
+        '3' => Ok(3),
+        '4' => Ok(4),
+        '5' => Ok(5),
+        '6' => Ok(6),
+        '7' => Ok(7),
+        '8' => Ok(8),
+        '9' => Ok(9),
+        'A' | 'a' => Ok(10),
+        'B' | 'b' => Ok(11),
+        'C' | 'c' => Ok(12),
+        'D' | 'd' => Ok(13),
+        'E' | 'e' => Ok(14),
+        'F' | 'f' => Ok(15),
+        'G' | 'g' => Ok(16),
+        'H' | 'h' => Ok(17),
+        'J' | 'j' => Ok(18),
+        'K' | 'k' => Ok(19),
+        'M' | 'm' => Ok(20),
+        'N' | 'n' => Ok(21),
+        'P' | 'p' => Ok(22),
+        'Q' | 'q' => Ok(23),
+        'R' | 'r' => Ok(24),
+        'S' | 's' => Ok(25),
+        'T' | 't' => Ok(26),
+        'V' | 'v' => Ok(27),
+        'W' | 'w' => Ok(28),
+        'X' | 'x' => Ok(29),
+        'Y' | 'y' => Ok(30),
+        'Z' | 'z' => Ok(31),
+        _ => Err(UlidError::InvalidChar(c)),
     }
 }

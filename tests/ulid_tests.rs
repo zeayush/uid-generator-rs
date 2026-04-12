@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::str::FromStr;
-use uid_generator_rs::{decode_base32_char, Ulid, UlidError};
+use uid_generator_rs::{Ulid, UlidError, decode_base32_char};
 
 const CROCKFORD_ALPHABET: &str = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
