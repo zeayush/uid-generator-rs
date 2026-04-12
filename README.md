@@ -24,6 +24,55 @@ Design a Unique ID Generator in Distributed Systems**.
 
 ---
 
+## How It Works
+
+### Snowflake (64-bit)
+
+```text
+  63        22        12        0
+  ┌──────────┬─────────┬────────┐
+  │  41-bit  │ 10-bit  │ 12-bit │
+  │ timestamp│machine  │sequence│
+  └──────────┴─────────┴────────┘
+```
+
+- `timestamp`: milliseconds since configured epoch (`DEFAULT_EPOCH_MS`)
+- `machine`: stable node identifier in `[0, 1023]`
+- `sequence`: per-millisecond counter in `[0, 4095]`
+
+ID assembly:
+
+```text
+id = (timestamp_ms << 22) | (machine_id << 12) | sequence
+```
+
+Generation behavior:
+
+- Same millisecond: increment sequence
+- Sequence overflow: park until next millisecond
+- Clock moves backward: park until clock is safe again
+
+### ULID (128-bit)
+
+```text
+bytes 0..5   -> 48-bit timestamp (ms since Unix epoch)
+bytes 6..15  -> 80-bit cryptographic randomness
+```
+
+- Encoded with Crockford Base32 into a 26-char string
+- Lexicographic string order matches chronological order
+- Parser accepts Crockford aliases (`I/L -> 1`, `O -> 0`)
+
+### Machine ID Resolution
+
+Resolution order:
+
+1. `UID_MACHINE_ID` environment variable
+2. Primary outbound IPv4 hash (FNV-1a)
+3. Hostname hash (FNV-1a)
+
+---
+
 ## Quick Start
 
 ```toml
@@ -106,19 +155,6 @@ cargo test
 Test suite covers uniqueness, monotonicity, machine ID boundaries, concurrent
 generation, sequence overflow behavior, ULID round-trips, parse validation,
 and machine ID source resolution.
-
----
-
-## Project Criteria
-
-| Item | Status |
-|---|---|
-| Duration | Designed for a 2-week implementation sprint |
-| Language rationale | Rust first for performance + safety in ID hot paths |
-| Go port strategy | API-consumer-friendly Go implementation in sibling repo |
-| Stack | Rust, cargo, criterion, GitHub Actions, Go port |
-| Deliverable shape | OSS-ready repo structure + publish-ready docs |
-| Feature set | Snowflake + ULID + custom epoch + machine ID fallback + drift/overflow handling |
 
 ---
 
